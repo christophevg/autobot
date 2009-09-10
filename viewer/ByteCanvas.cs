@@ -17,16 +17,20 @@ class ByteCanvas : DrawingArea {
     }
 
     protected override bool OnExposeEvent( Gdk.EventExpose args ) {
-	using( Graphics g = Gtk.DotNet.Graphics.FromDrawable( args.Window ) ) {
-	    for( int y=0; y<200; y++ ) {
-		for( int x=0; x<200; x++ ) {
-		    Pen pen = new Pen( Color.FromArgb(this.data[y,x], 
-						      this.data[y,x],
-						      this.data[y,x]), 1.0f);
-		    g.DrawLine( pen, x, y, x+1, y );
-		}
-	    }
-	}
+	this.RenderUsingBitmap(Gtk.DotNet.Graphics.FromDrawable( args.Window ));
 	return true;
     }
+
+    private void RenderUsingBitmap( Graphics g ) {
+	Bitmap bitmap = new Bitmap(200,200);
+	for( int y=0; y<200; y++ ) {
+	    for( int x=0; x<200; x++ ) {
+		bitmap.SetPixel( x, y, Color.FromArgb( this.data[y,x], 
+						       this.data[y,x], 
+						       this.data[y,x] ) );
+	    }
+	}
+	g.DrawImage(bitmap,0,0);
+    }
+    
 }
