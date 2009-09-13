@@ -66,11 +66,22 @@ xioctl                          (int                    fd,
         return r;
 }
 
-static void
-process_image                   (const void *           p)
-{
-        fputc ('.', stdout);
-        fflush (stdout);
+static void process_image( const void * p, size_t length ) {
+  FILE* fp;
+  if( (fp = fopen("out.jpg", "w")) == NULL ) {
+    printf ("Could not open file for writing.\n");
+  }
+  
+  int index;
+  for( index=0; index < length; ++index ) {
+    putc( ((char*)p)[index], fp );
+  }
+  
+  fflush (fp);
+  fclose (fp);
+
+  fputc( '.', stdout );
+  fflush (stdout);
 }
 
 static int
@@ -80,26 +91,6 @@ read_frame                      (void)
         unsigned int i;
 
         switch (io) {
-        case IO_METHOD_READ:
-                if (-1 == read (fd, buffers[0].start, buffers[0].length)) {
-                        switch (errno) {
-                        case EAGAIN:
-                                return 0;
-
-                        case EIO:
-                                /* Could ignore EIO, see spec. */
-
-                                /* fall through */
-
-                        default:
-                                errno_exit ("read");
-                        }
-                }
-
-                process_image (buffers[0].start);
-
-                break;
-
         case IO_METHOD_MMAP:
                 CLEAR (buf);
 
@@ -123,42 +114,7 @@ read_frame                      (void)
 
                 assert (buf.index < n_buffers);
 
-                process_image (buffers[buf.index].start);
-
-                if (-1 == xioctl (fd, VIDIOC_QBUF, &buf))
-                        errno_exit ("VIDIOC_QBUF");
-
-                break;
-
-        case IO_METHOD_USERPTR:
-                CLEAR (buf);
-
-                buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-                buf.memory = V4L2_MEMORY_USERPTR;
-
-                if (-1 == xioctl (fd, VIDIOC_DQBUF, &buf)) {
-                        switch (errno) {
-                        case EAGAIN:
-                                return 0;
-
-                        case EIO:
-                                /* Could ignore EIO, see spec. */
-
-                                /* fall through */
-
-                        default:
-                                errno_exit ("VIDIOC_DQBUF");
-                        }
-                }
-
-                for (i = 0; i < n_buffers; ++i)
-                        if (buf.m.userptr == (unsigned long) buffers[i].start
-                            && buf.length == buffers[i].length)
-                                break;
-
-                assert (i < n_buffers);
-
-                process_image ((void *) buf.m.userptr);
+                process_image(buffers[buf.index].start, buffers[buf.index].length);
 
                 if (-1 == xioctl (fd, VIDIOC_QBUF, &buf))
                         errno_exit ("VIDIOC_QBUF");
@@ -174,7 +130,7 @@ mainloop                        (void)
 {
         unsigned int count;
 
-        count = 100;
+        count = 1;
 
         while (count-- > 0) {
                 for (;;) {

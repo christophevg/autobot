@@ -9,13 +9,11 @@ formats: v4l2-formats
 v4l2-formats: v4l2-formats.c
 	${CC} -o $@ $<
 
-capture: v4l2-capture-example
-	./v4l2-capture-example -d ${DEV}
-
-v4l2-capture-example: v4l2-capture-example.c
+capture: capture.c
 	${CC} -o $@ $<
+	./capture -d ${DEV}
 
 clean:
 	@rm -f *~
-	@rm -f *.ppm
-	@rm -f a.out v4l2-formats v4l2-capture-example
+	@rm -f *.jpg
+	@rm -f a.out v4l2-formats capture
