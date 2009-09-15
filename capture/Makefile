@@ -1,27 +1,28 @@
 CC=gcc
-DEV=/dev/video0
+CFLAGS=-Wall
 
-all: clean out.jpg
+all: clean dump-jpeg
+
+dump-jpeg: out.small.jpg decode
+	./decode $<
+
+out.small.jpg: out.jpg
+	convert $< -crop 5x5+0+0 $@
+
+out.jpg: capture
+	./capture
+
+capture: capture.c
+	${CC} ${CFLAGS} -o $@ $<
+
+decode: decode.c .decode_lib_setup
+	${CC} ${CFLAGS} -Ilib/jpeg-7 lib/jpeg-7/*.o -o $@ $<
 
 formats: v4l2-formats
 	./v4l2-formats ${DEV}
 
 v4l2-formats: v4l2-formats.c
 	${CC} -o $@ $<
-
-out.jpg: capture
-	./capture -d ${DEV}
-
-capture: capture.c
-	${CC} -o $@ $<
-
-out.pnm: out.jpg decode
-	./decode $< $@
-
-decode: decode.c .decode_lib_setup
-	mv lib/jpeg-7/djpeg.o lib/jpeg-7/djpeg.o.tmp
-	${CC} -Ilib/jpeg-7 lib/jpeg-7/*.o -o $@ $<
-	mv lib/jpeg-7/djpeg.o.tmp lib/jpeg-7/djpeg.o
 
 .decode_lib_setup: lib
 	( cd lib; \
@@ -30,6 +31,8 @@ decode: decode.c .decode_lib_setup
 	  cd jpeg-7; \
 	  sh configure; \
 	  make djpeg )
+	mv lib/jpeg-7/djpeg.o lib/jpeg-7/djpeg.o.tmp
+	mv lib/jpeg-7/wrppm.o lib/jpeg-7/wrppm.o.tmp
 	touch .decode_lib_setup
 
 lib:

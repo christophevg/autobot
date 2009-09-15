@@ -72,25 +72,26 @@ static void process_image( const void * p, size_t length ) {
     printf ("Could not open file for writing.\n");
   }
   
+  printf( "length = %i\n", (int)length );
   int index;
   for( index=0; index < length; ++index ) {
-    putc( ((char*)p)[index], fp );
+    putc( ((unsigned char*)p)[index], fp );
   }
   
   fflush (fp);
   fclose (fp);
-
-  fputc( '.', stdout );
-  fflush (stdout);
 }
 
 static int
 read_frame                      (void)
 {
         struct v4l2_buffer buf;
-        unsigned int i;
 
         switch (io) {
+        case IO_METHOD_READ:
+        case IO_METHOD_USERPTR:
+                /* Nothing to do. */
+                break;
         case IO_METHOD_MMAP:
                 CLEAR (buf);
 
@@ -543,7 +544,7 @@ usage                           (FILE *                 fp,
         fprintf (fp,
                  "Usage: %s [options]\n\n"
                  "Options:\n"
-                 "-d | --device name   Video device name [/dev/video]\n"
+                 "-d | --device name   Video device name [/dev/video0]\n"
                  "-h | --help          Print this message\n"
                  "-m | --mmap          Use memory mapped buffers\n"
                  "-r | --read          Use read() calls\n"
@@ -568,7 +569,7 @@ int
 main                            (int                    argc,
                                  char **                argv)
 {
-        dev_name = "/dev/video";
+        dev_name = "/dev/video0";
 
         for (;;) {
                 int index;
