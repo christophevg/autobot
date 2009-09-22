@@ -8,11 +8,11 @@ all: clean out.png
 %.png: %.rgb
 	convert -size 320x240 -depth 8 rgb:$< $@
 
-%.rgb: grab-frame
-	./grab-frame $@ ${DEV}
+%.rgb: grab-frame.exe capture.so
+	LD_LIBRARY_PATH=. mono $< $@ ${DEV}
 
-grab-frame: capture.so grab-frame.c
-	${CC} grab-frame.c -o $@ -L. -lcapture
+%.exe: %.cs
+	mcs $<
 
 %.o: %.c
 	${CC} ${CFLAGS} -c $< -o $@
@@ -30,7 +30,6 @@ v4l2-formats: v4l2-formats.c
 	${CC} -o $@ $<
 
 clean:
-	@rm -f *~ *.o *.a *.so*
+	@rm -f *~ *.o *.a *.so* *.exe
 	@rm -f *.raw *.rgb *.png
-	@rm -f a.out v4l2-formats capture
-	@rm -f grab-frame
+	@rm -f v4l2-formats
