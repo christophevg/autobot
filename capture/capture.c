@@ -17,6 +17,9 @@
 
 #include <linux/videodev2.h>
 
+#include "yuv2rgb.h"
+#include "capture.h"
+
 #define CLEAR(x) memset (&(x), 0, sizeof (x))
 
 struct buffer {
@@ -24,17 +27,17 @@ struct buffer {
   size_t length;
 };
 
-static char *           dev_name        = NULL;
-static int              fd              = -1;
-struct buffer *         buffers         = NULL;
-static unsigned int     n_buffers       = 0;
+char*           dev_name        = NULL;
+int             fd              = -1;
+struct buffer*  buffers         = NULL;
+unsigned int    n_buffers       = 0;
 
-static void errno_exit(const char* s) {
+void errno_exit(const char* s) {
   fprintf (stderr, "%s error %d, %s\n", s, errno, strerror (errno));
   exit(EXIT_FAILURE);
 }
 
-static int xioctl(int fd, int request, void* arg) {
+int xioctl(int fd, int request, void* arg) {
   int r;
   
   do r = ioctl( fd, request, arg );
@@ -43,23 +46,20 @@ static int xioctl(int fd, int request, void* arg) {
   return r;
 }
 
-static void process_image( const void * p, size_t length ) {
-  FILE* fp;
-  if( (fp = fopen("out.raw", "w")) == NULL ) {
+void process_image( char* filename, unsigned char* yuv ) {
+  FILE* out;
+  if( (out = fopen(filename, "wb")) == NULL ) {
     printf ("Could not open file for writing.\n");
   }
   
-  printf( "length = %i\n", (int)length );
-  int index;
-  for( index=0; index < length; index++ ) {
-    putc( ((unsigned char*)p)[index], fp );  
-  }
+  unsigned char* rgb = malloc( 320 * 240 * 3 );
+  convert_yuv_to_rgb_buffer(yuv, rgb, 320, 240);
   
-  fflush (fp);
-  fclose (fp);
+  fwrite(rgb, 320 * 240 * 3, 1, out);
+  fclose(out);
 }
 
-static int read_frame() {
+int read_frame( char* filename ) {
   struct v4l2_buffer buf;
   
   CLEAR (buf);
@@ -82,9 +82,9 @@ static int read_frame() {
     }
   }
   
-  assert (buf.index < n_buffers);
+  assert(buf.index < n_buffers);
   
-  process_image(buffers[buf.index].start, buffers[buf.index].length);
+  process_image( filename, buffers[buf.index].start );
   
   if (-1 == xioctl (fd, VIDIOC_QBUF, &buf))
     errno_exit ("VIDIOC_QBUF");
@@ -92,7 +92,7 @@ static int read_frame() {
   return 1;
 }
 
-static void fetch_frame() {
+void fetch_frame(char* filename) {
   fd_set fds;
   struct timeval tv;
   int r;
@@ -101,7 +101,7 @@ static void fetch_frame() {
   FD_SET (fd, &fds);
   
   /* Timeout: needed to get image from webcam */
-  tv.tv_sec  = 2;
+  tv.tv_sec  = 1;
   tv.tv_usec = 0;
   
   r = select( fd + 1, &fds, NULL, NULL, &tv );
@@ -111,10 +111,10 @@ static void fetch_frame() {
     exit (EXIT_FAILURE);
   }
   
-  read_frame();
+  read_frame(filename);
 }
 
-static void stop_capturing() {
+void stop_capturing() {
   enum v4l2_buf_type type;
   
   type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
@@ -124,7 +124,7 @@ static void stop_capturing() {
   }
 }
 
-static void start_capturing() {
+void start_capturing() {
   unsigned int i;
   enum v4l2_buf_type type;
 
@@ -149,7 +149,7 @@ static void start_capturing() {
   }
 }
 
-static void uninit_device() {
+void uninit_device() {
   unsigned int i;
   
   for( i = 0; i < n_buffers; ++i ) {
@@ -161,7 +161,7 @@ static void uninit_device() {
   free( buffers );
 }
 
-static void init_mmap() {
+void init_mmap() {
   struct v4l2_requestbuffers req;
   
   CLEAR (req);
@@ -217,7 +217,7 @@ static void init_mmap() {
   }
 }
 
-static void init_device() {
+void init_device() {
   struct v4l2_capability cap;
   struct v4l2_format fmt;
   
@@ -257,15 +257,17 @@ static void init_device() {
   init_mmap ();
 }
 
-static void close_device() {
+void close_device() {
   if( -1 == close(fd) ) {
     errno_exit("close");
   }
   fd = -1;
 }
 
-static void open_device() {
+void open_device( char* dev ) {
   struct stat st; 
+
+  dev_name = dev;
 
   if( -1 == stat(dev_name, &st) ) {
     fprintf (stderr, "Cannot identify '%s': %d, %s\n",
@@ -287,16 +289,12 @@ static void open_device() {
   }
 }
 
-int main( int argc, char** argv ) {
-  dev_name = "/dev/video0";
-
-  open_device();
+void grab_frame( char* filename, char* device ) {
+  open_device( device );
   init_device();
   start_capturing();
-  fetch_frame();
+  fetch_frame( filename );
   stop_capturing();
   uninit_device();
   close_device();
-
-  return 0;
 }

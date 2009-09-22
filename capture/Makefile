@@ -1,19 +1,27 @@
+DEV=/dev/video0
 CC=gcc
-CFLAGS=-Wall
+CFLAGS=-W -Wall
+LDFLAGS=
 
 all: clean out.png
 
-out.png: out.rgb
+%.png: %.rgb
 	convert -size 320x240 -depth 8 rgb:$< $@
 
-out.rgb: out.raw .yuv2rgb_setup
-	./yuv2rgb 320 240 $< $@
+%.rgb: grab-frame
+	./grab-frame $@ ${DEV}
 
-out.raw: capture
-	./capture
+grab-frame: capture.so grab-frame.c
+	${CC} grab-frame.c -o $@ -L. -lcapture
 
-capture: capture.c
-	${CC} ${CFLAGS} -o $@ $<
+%.o: %.c
+	${CC} ${CFLAGS} -c $< -o $@
+
+capture.so: capture.o yuv2rgb.o capture.a
+	${CC} -shared -Wl,-soname,lib$@.1 -o lib$@.1.0.1 capture.o yuv2rgb.o
+
+capture.a: capture.o yuv2rgb.o
+	ar rcs lib$@ capture.o yuv2rgb.o
 
 formats: v4l2-formats
 	./v4l2-formats ${DEV}
@@ -21,21 +29,8 @@ formats: v4l2-formats
 v4l2-formats: v4l2-formats.c
 	${CC} -o $@ $<
 
-.yuv2rgb_setup:
-	( mkdir -p lib; \
-	  cd lib; \
-	  wget http://www.quickcamteam.net/archive/Yuv2rgb.tar.gz; \
-	  tar -zxvf Yuv2rgb.tar.gz; \
-	  cd yuv2rgb; \
-	  make yuv2rgb )
-	mv lib/yuv2rgb/yuv2rgb .
-	touch $@
-
-dist: clean
-	@rm -rf lib
-	@rm -f yuv2rgb .yuv2rgb_setup
-
 clean:
-	@rm -f *~ *.o
+	@rm -f *~ *.o *.a *.so*
 	@rm -f *.raw *.rgb *.png
 	@rm -f a.out v4l2-formats capture
+	@rm -f grab-frame
