@@ -45,14 +45,14 @@ static int xioctl(int fd, int request, void* arg) {
 
 static void process_image( const void * p, size_t length ) {
   FILE* fp;
-  if( (fp = fopen("out.jpg", "w")) == NULL ) {
+  if( (fp = fopen("out.raw", "w")) == NULL ) {
     printf ("Could not open file for writing.\n");
   }
   
   printf( "length = %i\n", (int)length );
   int index;
-  for( index=0; index < length; ++index ) {
-    putc( ((unsigned char*)p)[index], fp );
+  for( index=0; index < length; index++ ) {
+    putc( ((unsigned char*)p)[index], fp );  
   }
   
   fflush (fp);
@@ -101,7 +101,7 @@ static void fetch_frame() {
   FD_SET (fd, &fds);
   
   /* Timeout: needed to get image from webcam */
-  tv.tv_sec = 1;
+  tv.tv_sec  = 2;
   tv.tv_usec = 0;
   
   r = select( fd + 1, &fds, NULL, NULL, &tv );
@@ -220,10 +220,9 @@ static void init_mmap() {
 static void init_device() {
   struct v4l2_capability cap;
   struct v4l2_format fmt;
-  unsigned int min;
   
-  if (-1 == xioctl (fd, VIDIOC_QUERYCAP, &cap)) {
-    if (EINVAL == errno) {
+  if( -1 == xioctl (fd, VIDIOC_QUERYCAP, &cap) ) {
+    if( EINVAL == errno ) {
       fprintf (stderr, "%s is no V4L2 device\n", dev_name);
       exit (EXIT_FAILURE);
     } else {
@@ -246,25 +245,13 @@ static void init_device() {
   CLEAR (fmt);
   
   fmt.type                = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-  fmt.fmt.pix.width       = 640; 
-  fmt.fmt.pix.height      = 480;
+  fmt.fmt.pix.width       = 320; 
+  fmt.fmt.pix.height      = 240;
   fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_YUYV;
-  fmt.fmt.pix.field       = V4L2_FIELD_INTERLACED;
+  fmt.fmt.pix.field       = V4L2_FIELD_NONE;
   
   if( -1 == xioctl (fd, VIDIOC_S_FMT, &fmt) ) {
-    errno_exit ("VIDIOC_S_FMT");
-  }
-  
-  /* Note VIDIOC_S_FMT may change width and height. */
-  
-  /* Buggy driver paranoia. */
-  min = fmt.fmt.pix.width * 2;
-  if( fmt.fmt.pix.bytesperline < min ) {
-    fmt.fmt.pix.bytesperline = min;
-  }
-  min = fmt.fmt.pix.bytesperline * fmt.fmt.pix.height;
-  if( fmt.fmt.pix.sizeimage < min ) {
-    fmt.fmt.pix.sizeimage = min;
+    errno_exit( "VIDIOC_S_FMT" );
   }
   
   init_mmap ();

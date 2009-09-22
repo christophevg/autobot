@@ -1,2 +1,8 @@
+*~
 lib
-.decode_lib_setup
+capture
+yuv2rgb
+.yuv2rgb_setup
+*.raw
+*.rgb
+*.png

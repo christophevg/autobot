@@ -1,22 +1,19 @@
 CC=gcc
 CFLAGS=-Wall
 
-all: clean dump-jpeg
+all: clean out.png
 
-dump-jpeg: out.small.jpg decode
-	./decode $<
+out.png: out.rgb
+	convert -size 320x240 -depth 8 rgb:$< $@
 
-out.small.jpg: out.jpg
-	convert $< -crop 5x5+0+0 $@
+out.rgb: out.raw .yuv2rgb_setup
+	./yuv2rgb 320 240 $< $@
 
-out.jpg: capture
+out.raw: capture
 	./capture
 
 capture: capture.c
 	${CC} ${CFLAGS} -o $@ $<
-
-decode: decode.c .decode_lib_setup
-	${CC} ${CFLAGS} -Ilib/jpeg-7 lib/jpeg-7/*.o -o $@ $<
 
 formats: v4l2-formats
 	./v4l2-formats ${DEV}
@@ -24,25 +21,21 @@ formats: v4l2-formats
 v4l2-formats: v4l2-formats.c
 	${CC} -o $@ $<
 
-.decode_lib_setup: lib
-	( cd lib; \
-	  wget http://www.ijg.org/files/jpegsrc.v7.tar.gz; \
-	  tar -zxvf jpegsrc.v7.tar.gz; \
-	  cd jpeg-7; \
-	  sh configure; \
-	  make djpeg )
-	mv lib/jpeg-7/djpeg.o lib/jpeg-7/djpeg.o.tmp
-	mv lib/jpeg-7/wrppm.o lib/jpeg-7/wrppm.o.tmp
-	touch .decode_lib_setup
-
-lib:
-	mkdir lib
+.yuv2rgb_setup:
+	( mkdir -p lib; \
+	  cd lib; \
+	  wget http://www.quickcamteam.net/archive/Yuv2rgb.tar.gz; \
+	  tar -zxvf Yuv2rgb.tar.gz; \
+	  cd yuv2rgb; \
+	  make yuv2rgb )
+	mv lib/yuv2rgb/yuv2rgb .
+	touch $@
 
 dist: clean
 	@rm -rf lib
-	@rm -f .decode_lib_setup
+	@rm -f yuv2rgb .yuv2rgb_setup
 
 clean:
-	@rm -f *~ *.o djpeg.c
-	@rm -f *.jpg *.pnm
-	@rm -f a.out v4l2-formats capture decode
+	@rm -f *~ *.o
+	@rm -f *.raw *.rgb *.png
+	@rm -f a.out v4l2-formats capture
