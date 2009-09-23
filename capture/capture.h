@@ -1,1 +1,1 @@
-void grab_frame( char*, char* );
+unsigned char* grab_frame( char* );

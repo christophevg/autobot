@@ -46,20 +46,13 @@ int xioctl(int fd, int request, void* arg) {
   return r;
 }
 
-void process_image( char* filename, unsigned char* yuv ) {
-  FILE* out;
-  if( (out = fopen(filename, "wb")) == NULL ) {
-    printf ("Could not open file for writing.\n");
-  }
-  
+unsigned char* process_image( unsigned char* yuv ) {
   unsigned char* rgb = malloc( 320 * 240 * 3 );
   convert_yuv_to_rgb_buffer(yuv, rgb, 320, 240);
-  
-  fwrite(rgb, 320 * 240 * 3, 1, out);
-  fclose(out);
+  return rgb;
 }
 
-int read_frame( char* filename ) {
+unsigned char* read_frame() {
   struct v4l2_buffer buf;
   
   CLEAR (buf);
@@ -84,15 +77,15 @@ int read_frame( char* filename ) {
   
   assert(buf.index < n_buffers);
   
-  process_image( filename, buffers[buf.index].start );
+  unsigned char* image = process_image( buffers[buf.index].start );
   
   if (-1 == xioctl (fd, VIDIOC_QBUF, &buf))
     errno_exit ("VIDIOC_QBUF");
   
-  return 1;
+  return image;
 }
 
-void fetch_frame(char* filename) {
+unsigned char* fetch_frame() {
   fd_set fds;
   struct timeval tv;
   int r;
@@ -111,7 +104,7 @@ void fetch_frame(char* filename) {
     exit (EXIT_FAILURE);
   }
   
-  read_frame(filename);
+  return read_frame();
 }
 
 void stop_capturing() {
@@ -289,12 +282,14 @@ void open_device( char* dev ) {
   }
 }
 
-void grab_frame( char* filename, char* device ) {
+unsigned char* grab_frame( char* device ) {
   open_device( device );
   init_device();
   start_capturing();
-  fetch_frame( filename );
+  unsigned char* image = fetch_frame();
   stop_capturing();
   uninit_device();
   close_device();
+
+  return image;
 }
