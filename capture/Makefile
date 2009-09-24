@@ -6,7 +6,11 @@ LDFLAGS=
 all: clean out.png
 
 %.png: %.rgb
-	convert -size 320x240 -depth 8 rgb:$< $@
+	convert -size 320x240 -depth 8 rgb:0-$< 0-$@
+	convert -size 320x240 -depth 8 rgb:1-$< 1-$@
+	convert -size 320x240 -depth 8 rgb:2-$< 2-$@
+	convert -size 320x240 -depth 8 rgb:3-$< 3-$@
+	convert -size 320x240 -depth 8 rgb:4-$< 4-$@
 
 %.rgb: grab-frame.exe capture.so
 	LD_LIBRARY_PATH=. mono $< $@ ${DEV}

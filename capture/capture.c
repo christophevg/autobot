@@ -46,13 +46,11 @@ int xioctl(int fd, int request, void* arg) {
   return r;
 }
 
-unsigned char* process_image( unsigned char* yuv ) {
-  unsigned char* rgb = malloc( 320 * 240 * 3 );
+void process_image( unsigned char* yuv, unsigned char* rgb ) {
   convert_yuv_to_rgb_buffer(yuv, rgb, 320, 240);
-  return rgb;
 }
 
-unsigned char* read_frame() {
+void read_frame(unsigned char* image) {
   struct v4l2_buffer buf;
   
   CLEAR (buf);
@@ -63,7 +61,7 @@ unsigned char* read_frame() {
   if( -1 == xioctl( fd, VIDIOC_DQBUF, &buf ) ) {
     switch (errno) {
     case EAGAIN:
-      return 0;
+      return;
       
     case EIO:
       /* Could ignore EIO, see spec. */
@@ -77,15 +75,13 @@ unsigned char* read_frame() {
   
   assert(buf.index < n_buffers);
   
-  unsigned char* image = process_image( buffers[buf.index].start );
-  
   if (-1 == xioctl (fd, VIDIOC_QBUF, &buf))
     errno_exit ("VIDIOC_QBUF");
-  
-  return image;
+
+  process_image( buffers[buf.index].start, image );
 }
 
-unsigned char* fetch_frame() {
+void fetch_frame( unsigned char* image ) {
   fd_set fds;
   struct timeval tv;
   int r;
@@ -104,7 +100,7 @@ unsigned char* fetch_frame() {
     exit (EXIT_FAILURE);
   }
   
-  return read_frame();
+  read_frame(image);
 }
 
 void stop_capturing() {
@@ -282,14 +278,14 @@ void open_device( char* dev ) {
   }
 }
 
-unsigned char* grab_frame( char* device ) {
+void prepare( char* device ) {
   open_device( device );
   init_device();
   start_capturing();
-  unsigned char* image = fetch_frame();
+}
+
+void stop() {
   stop_capturing();
   uninit_device();
   close_device();
-
-  return image;
 }

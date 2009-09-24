@@ -2,9 +2,15 @@ using System;
 using System.IO;
 using System.Runtime.InteropServices;
 
-struct my_wrapper {
+struct capturer {
     [DllImport ("libcapture.so.1.0.1")]
-    public static extern byte[] grab_frame( String device );
+    public static extern void prepare( String device );
+
+    [DllImport ("libcapture.so.1.0.1")]
+    public static extern void stop();
+
+    [DllImport ("libcapture.so.1.0.1")]
+    public static extern void fetch_frame( byte[] image );
 };
 
 class caller {
@@ -12,13 +18,19 @@ class caller {
 	String filename = args.Length > 0 ? args[0] : "out.rgb";
 	String device   = args.Length > 1 ? args[1] : "/dev/video0";
 
-	byte[] image = my_wrapper.grab_frame( device );
+	capturer.prepare( device );
 
-	FileStream stream = new FileStream(filename, FileMode.Create);
-	BinaryWriter w = new BinaryWriter(stream);
-	for(int i=0; i<320*240*3; i++ ) {
-	    w.Write(image[i]);
+	for( int f=0; f<5; f++ ) {
+	    byte[] image = new byte[320*240*3];
+	    capturer.fetch_frame( image );
+
+	    FileStream stream = new FileStream(f.ToString() + "-" + filename, 
+					       FileMode.Create);
+	    BinaryWriter w = new BinaryWriter(stream);
+	    w.Write(image, 0, 320*240*3);
+	    w.Close();
 	}
-	w.Close();
+
+	capturer.stop();
     }
 };
