@@ -3,32 +3,50 @@ using System;
 using System.Drawing;
 
 class Viewer {
-    static ByteCanvas canvas;
-    static FrameFetcher fetcher;
-    
     static void Main () {
-	Application.Init ();
-	Window w = new Window( "Project AutoBot - Viewer" );
-	w.DeleteEvent += OnDelete;
-	
-	canvas = new ByteCanvas();
+	new Viewer().Start();
+    }
 
-	fetcher = new FrameFetcher();
-	fetcher.NewDataEvent += OnNewData;
+    Window       window;
+    ByteCanvas   canvas;
+    FrameFetcher fetcher;
+    
+    public Viewer() {
+	this.SetupApplication();
+	this.SetupFrameFetcher();
+	this.SetupByteCanvas();
+	this.SetupWindow();
+    }
 
-	Box layout = new HBox( true, 0 );
-	layout.Add( canvas );
-	w.Add( layout );
-	
-	w.ShowAll();
+    public void Start() {
+	this.window.ShowAll();
+	this.fetcher.Start();
 	Application.Run();
     }
 
-    static void OnNewData( object data, EventArgs e ) {
-	canvas.SetPixelData( (int[,])data );
+    private void SetupApplication() {
+	Application.Init ();
+	
     }
-    
-    static void OnDelete( object o, DeleteEventArgs e ) {
-	Application.Quit ();
+
+    private void SetupFrameFetcher() {
+	this.fetcher = new FrameFetcher();
+	this.fetcher.NewDataEvent += delegate( object data, EventArgs e ) { 
+	    this.canvas.SetPixelData((byte[])data);
+	};
+    }
+
+    private void SetupByteCanvas() {
+	this.canvas = new ByteCanvas( this.fetcher.Width, 
+				      this.fetcher.Height,
+				      this.fetcher.Colors );
+    }
+
+    private void SetupWindow() {
+	this.window = new Window( "Project AutoBot - Viewer" );
+	this.window.DeleteEvent += delegate { Application.Quit(); };
+	Box layout = new HBox( true, 0 );
+	layout.Add( this.canvas );
+	this.window.Add( layout );
     }
 }

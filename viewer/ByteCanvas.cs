@@ -3,15 +3,23 @@ using System;
 using System.Drawing;
 
 class ByteCanvas : DrawingArea {
-    public ByteCanvas() : this( 200, 200 ) {}
+    private byte[] data;
 
-    public ByteCanvas( int width, int height ) {
-	SetSizeRequest( width, height );
+    private int colors;
+    public int Colors {
+	get { return this.colors; }
     }
 
-    private int[,] data;
-    
-    public void SetPixelData( int[,] data ) {
+    public int LinearSize {
+	get { return this.WidthRequest * this.HeightRequest * this.Colors; }
+    }
+
+    public ByteCanvas( int width, int height, int colors ) {
+	SetSizeRequest( width, height );
+	this.colors = colors;
+    }
+   
+    public void SetPixelData( byte[] data ) {
 	this.data = data;
 	QueueDraw();
     }
@@ -22,15 +30,19 @@ class ByteCanvas : DrawingArea {
     }
 
     private void RenderUsingBitmap( Graphics g ) {
-	Bitmap bitmap = new Bitmap(200,200);
-	for( int y=0; y<200; y++ ) {
-	    for( int x=0; x<200; x++ ) {
-		bitmap.SetPixel( x, y, Color.FromArgb( this.data[y,x], 
-						       this.data[y,x], 
-						       this.data[y,x] ) );
-	    }
+	// cache these, because the getters are pretty slow
+	int width  = this.WidthRequest;
+	int height = this.HeightRequest;
+	int colors = this.Colors;
+
+	Bitmap bitmap = new Bitmap(width, height);
+
+	for( int x=0; x<width*height*colors; x+=colors ) {
+	    bitmap.SetPixel( (x / colors) % width, x / colors / width, 
+			     Color.FromArgb( this.data[x], 
+					     this.data[x+1], 
+					     this.data[x+2] ) );
 	}
 	g.DrawImage(bitmap,0,0);
     }
-    
 }
