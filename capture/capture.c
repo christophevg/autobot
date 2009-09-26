@@ -18,9 +18,16 @@
 #include <linux/videodev2.h>
 
 #include "yuv2rgb.h"
-#include "capture.h"
 
 #define CLEAR(x) memset (&(x), 0, sizeof (x))
+
+const int FRAME_WIDTH  = 320;
+const int FRAME_HEIGHT = 240;
+const int FRAME_COLORS = 3;
+
+int get_width()  { return FRAME_WIDTH;  }
+int get_height() { return FRAME_HEIGHT; }
+int get_colors() { return FRAME_COLORS; }
 
 struct buffer {
   void*  start;
@@ -47,7 +54,7 @@ int xioctl(int fd, int request, void* arg) {
 }
 
 void process_image( unsigned char* yuv, unsigned char* rgb ) {
-  convert_yuv_to_rgb_buffer(yuv, rgb, 320, 240);
+  convert_yuv_to_rgb_buffer(yuv, rgb, FRAME_WIDTH, FRAME_HEIGHT);
 }
 
 void read_frame(unsigned char* image) {
@@ -234,8 +241,8 @@ void init_device() {
   CLEAR (fmt);
   
   fmt.type                = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-  fmt.fmt.pix.width       = 320; 
-  fmt.fmt.pix.height      = 240;
+  fmt.fmt.pix.width       = FRAME_WIDTH; 
+  fmt.fmt.pix.height      = FRAME_HEIGHT;
   fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_YUYV;
   fmt.fmt.pix.field       = V4L2_FIELD_NONE;
   
