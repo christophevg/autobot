@@ -22,6 +22,7 @@ class ByteCanvas : DrawingArea {
     public void SetPixelData( byte[] data ) {
 	this.data = data;
 	QueueDraw();
+	while( Application.EventsPending() ) { Application.RunIteration (); }
     }
 
     protected override bool OnExposeEvent( Gdk.EventExpose args ) {

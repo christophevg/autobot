@@ -2,6 +2,8 @@ using Gtk;
 using System;
 using System.Drawing;
 
+using Project.Autobot.Capture;
+
 class Viewer {
     static void Main () {
 	new Viewer().Start();
@@ -9,7 +11,7 @@ class Viewer {
 
     Window       window;
     ByteCanvas   canvas;
-    FrameFetcher fetcher;
+    IFrameFetcher fetcher;
     
     public Viewer() {
 	this.SetupApplication();
@@ -20,8 +22,17 @@ class Viewer {
 
     public void Start() {
 	this.window.ShowAll();
-	this.fetcher.Start();
+	this.StartLoop();
 	Application.Run();
+    }
+
+    private void StartLoop() {
+	GLib.Timeout.Add( 20, new GLib.TimeoutHandler( Refresh ));	
+    }
+
+    private bool Refresh() {
+	this.canvas.SetPixelData( this.fetcher.GetNextFrame().byteStream );
+	return true;
     }
 
     private void SetupApplication() {
@@ -30,16 +41,13 @@ class Viewer {
     }
 
     private void SetupFrameFetcher() {
-	this.fetcher = new FrameFetcher();
-	this.fetcher.NewDataEvent += delegate( object data, EventArgs e ) { 
-	    this.canvas.SetPixelData((byte[])data);
-	};
+	this.fetcher = FrameFetcher.Setup("/dev/video0");
     }
 
     private void SetupByteCanvas() {
-	this.canvas = new ByteCanvas( this.fetcher.Width, 
-				      this.fetcher.Height,
-				      this.fetcher.Colors );
+	this.canvas = new ByteCanvas( this.fetcher.width, 
+				      this.fetcher.height,
+				      this.fetcher.colors );
     }
 
     private void SetupWindow() {
