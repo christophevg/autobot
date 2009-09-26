@@ -4,11 +4,11 @@ using System.Runtime.InteropServices;
 
 namespace Project.Autobot.Capture {
     public interface IFrameFetcher {
-	Frame getNextFrame();
+	Frame GetNextFrame();
     }
 
     public struct FrameFetcher {
-	public static IFrameFetcher setup( String device ) {
+	public static IFrameFetcher Setup( String device ) {
 	    if( device.StartsWith( "/dev/video" ) ) {
 		return new V4L2Fetcher( device );
 	    }
@@ -54,7 +54,7 @@ namespace Project.Autobot.Capture {
 	    this.frame = new Frame( 320, 200, 3 );
 	}
 
-	public Frame getNextFrame() {
+	public Frame GetNextFrame() {
 	    long numBytes = new FileInfo(this.currentMockFile).Length;
 	    FileStream stream = new FileStream( this.currentMockFile, 
 						FileMode.Open, FileAccess.Read );
@@ -79,7 +79,7 @@ namespace Project.Autobot.Capture {
 	    V4L2Fetcher.stop();
 	}
 	
-	public Frame getNextFrame() {
+	public Frame GetNextFrame() {
 	    V4L2Fetcher.fetch_frame( this.frame.byteStream );
 	    return this.frame;
 	}

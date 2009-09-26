@@ -8,10 +8,10 @@ class caller {
 	String filename = args.Length > 0 ? args[0] : "out.rgb";
 	String device   = args.Length > 1 ? args[1] : "/dev/video0";
 
-	IFrameFetcher fetcher = FrameFetcher.setup( device );
+	IFrameFetcher fetcher = FrameFetcher.Setup( device );
 
 	for( int f=0; f<5; f++ ) {
-	    Frame frame = fetcher.getNextFrame();
+	    Frame frame = fetcher.GetNextFrame();
 	    FileStream stream = new FileStream( f.ToString() + "-" + filename, 
 						FileMode.Create );
 	    BinaryWriter writer = new BinaryWriter( stream );
