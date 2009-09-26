@@ -1,7 +1,21 @@
 using System;
+using System.IO;
 using System.Runtime.InteropServices;
 
 namespace Project.Autobot.Capture {
+    public interface IFrameFetcher {
+	Frame getNextFrame();
+    }
+
+    public struct FrameFetcher {
+	public static IFrameFetcher setup( String device ) {
+	    if( device.StartsWith( "/dev/video" ) ) {
+		return new V4L2Fetcher( device );
+	    }
+	    return new MockFetcher();
+	}
+    }
+
     public class Frame {
 	private byte[] data;
 	public byte[] byteStream { 
@@ -24,23 +38,49 @@ namespace Project.Autobot.Capture {
 	}
     }
     
-    public class FrameFetcher {
+    public class MockFetcher : IFrameFetcher {
+	private int frameId;
+	private String path;
 	private Frame frame;
 	
-	public FrameFetcher() : this( "/dev/video0" ) {}
-	public FrameFetcher( String device ) {
-	    FrameFetcher.prepare( device );
-	    this.frame = new Frame( FrameFetcher.get_width(), 
-				    FrameFetcher.get_height(), 
-				    FrameFetcher.get_colors() );
+	public String currentMockFile {
+	    get { return this.path + "/" + this.frameId.ToString() + ".rgb"; }
+	}
+
+	public MockFetcher() : this( "./mock" ) {}
+	public MockFetcher( String path ) {
+	    this.frameId = 0;
+	    this.path = path;
+	    this.frame = new Frame( 320, 200, 3 );
+	}
+
+	public Frame getNextFrame() {
+	    long numBytes = new FileInfo(this.currentMockFile).Length;
+	    FileStream stream = new FileStream( this.currentMockFile, 
+						FileMode.Open, FileAccess.Read );
+	    BinaryReader reader = new BinaryReader(stream);
+	    this.frame.byteStream = reader.ReadBytes((int)numBytes);
+	    return this.frame;
+	}
+    }
+
+    public class V4L2Fetcher : IFrameFetcher {
+	private Frame frame;
+	
+	public V4L2Fetcher() : this( "/dev/video0" ) {}
+	public V4L2Fetcher( String device ) {
+	    V4L2Fetcher.prepare( device );
+	    this.frame = new Frame( V4L2Fetcher.get_width(), 
+				    V4L2Fetcher.get_height(), 
+				    V4L2Fetcher.get_colors() );
 	}
 	
-	~FrameFetcher() {
-	    FrameFetcher.stop();
+	~V4L2Fetcher() {
+	    V4L2Fetcher.stop();
 	}
 	
 	public Frame getNextFrame() {
-	    FrameFetcher.fetch_frame( this.frame.byteStream );
+	    V4L2Fetcher.fetch_frame( this.frame.byteStream );
 	    return this.frame;
 	}
 	
