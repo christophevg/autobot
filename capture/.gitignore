@@ -1,8 +1,7 @@
-*~
 lib
 capture
-yuv2rgb
-.yuv2rgb_setup
 *.raw
 *.rgb
 *.png
+*.o
+*.a
