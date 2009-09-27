@@ -1,6 +1,7 @@
 using Gtk;
 using System;
 using System.Drawing;
+using System.Diagnostics;
 
 using Project.Autobot.Capture;
 
@@ -9,9 +10,12 @@ class Viewer {
 	new Viewer().Start();
     }
 
-    Window       window;
-    ByteCanvas   canvas;
+    Window        window;
+    ByteCanvas    canvas;
     IFrameFetcher fetcher;
+
+    long      frames;
+    Stopwatch stopwatch;
     
     public Viewer() {
 	this.SetupApplication();
@@ -27,11 +31,13 @@ class Viewer {
     }
 
     private void StartLoop() {
+	this.StartFPSCounter();
 	GLib.Timeout.Add( 20, new GLib.TimeoutHandler( Refresh ));	
     }
 
     private bool Refresh() {
 	this.canvas.SetPixelData( this.fetcher.GetNextFrame().byteStream );
+	this.CountNextFrame();
 	return true;
     }
 
@@ -56,5 +62,19 @@ class Viewer {
 	Box layout = new HBox( true, 0 );
 	layout.Add( this.canvas );
 	this.window.Add( layout );
+    }
+
+    private void StartFPSCounter() {
+	this.frames = 0;
+	this.stopwatch = new Stopwatch();
+	this.stopwatch.Start();
+    }
+
+    private void CountNextFrame() {
+	this.frames++;
+	if( this.frames % 100 == 0 ) {
+	    long fps = this.frames / (this.stopwatch.ElapsedMilliseconds / 1000);
+	    Console.WriteLine( "{0} FPS", fps );
+	}
     }
 }
