@@ -1,5 +1,5 @@
 DEV=/dev/video0
-CC=gcc
+CC=g++
 CFLAGS=-W -Wall
 LDFLAGS=
 
@@ -34,10 +34,10 @@ mock: out.rgb
 grab-frame.exe: grab-frame.cs Project.Autobot.Capture.dll capture.so
 	mcs -r:Project.Autobot.Capture.dll -out:$@ $<
 
-Project.Autobot.Capture.dll: Project.Autobot.Capture.cs
-	mcs -target:library -out:$@ $<
+Project.Autobot.Capture.dll: Project.Autobot.Capture.cs V4L2Device.cs
+	mcs -target:library -out:$@ Project.Autobot.Capture.cs V4L2Device.cs
 
-%.o: %.c
+%.o: %.cc
 	${CC} ${CFLAGS} -c $< -o $@
 
 capture.so: capture.o yuv2rgb.o capture.a
