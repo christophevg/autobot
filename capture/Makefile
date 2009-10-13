@@ -40,11 +40,14 @@ Project.Autobot.Capture.dll: Project.Autobot.Capture.cs V4L2Device.cs
 %.o: %.cc
 	${CC} ${CFLAGS} -c $< -o $@
 
-capture.so: capture.o yuv2rgb.o capture.a
-	${CC} -shared -Wl,-soname,lib$@.1 -o lib$@.1.0.0 capture.o yuv2rgb.o
+grab-frame: grab-frame.o V4L2Device.o FrameStreamer.o yuv2rgb.o
+	${CC} -o $@ grab-frame.o V4L2Device.o FrameStreamer.o yuv2rgb.o
 
-capture.a: capture.o yuv2rgb.o
-	ar rcs lib$@ capture.o yuv2rgb.o
+capture.so: V4L2Device.o FrameStreamer.o yuv2rgb.o capture.a
+	${CC} -shared -Wl,-soname,lib$@.1 -o lib$@.1.0.0 V4L2Device.o FrameStreamer.o  yuv2rgb.o
+
+capture.a: V4L2Device.o FrameStreamer.o yuv2rgb.o
+	ar rcs lib$@ V4L2Device.o FrameStreamer.o yuv2rgb.o
 
 formats: v4l2-formats
 	./v4l2-formats ${DEV}
@@ -55,4 +58,4 @@ v4l2-formats: v4l2-formats.c
 clean:
 	@rm -f *~ *.o *.a *.so* *.exe *.dll
 	@rm -f *.raw *.rgb *.png
-	@rm -f v4l2-formats
+	@rm -f v4l2-formats grab-frame
