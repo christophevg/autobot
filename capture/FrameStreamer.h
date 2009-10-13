@@ -34,7 +34,9 @@ public:
   void stop();
 };
 
-class EchoFrameDecorator : public FrameDecorator {
+class NullFrameDecorator : public FrameDecorator {
+public:
+  NullFrameDecorator(FrameStreamer* fs);
 protected:
   void postProcessFrame( unsigned char* frame );
 };

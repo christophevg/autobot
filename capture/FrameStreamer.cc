@@ -21,6 +21,12 @@ void FrameDecorator::stop() {
   this->fs->stop();
 }
 
-void EchoFrameDecorator::postProcessFrame( unsigned char* frame ) {
+NullFrameDecorator::NullFrameDecorator(FrameStreamer* fs)
+  : FrameDecorator(fs)
+{
+    // nothing else todo, just passing on ;-)
+};
+
+void NullFrameDecorator::postProcessFrame( unsigned char* frame ) {
   // do nothing ;-)
 }

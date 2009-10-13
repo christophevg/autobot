@@ -2,8 +2,10 @@
 #include "V4L2Device.h"
 
 int main() {
-	FrameStreamer* dev   = new V4L2Device("/dev/video0");
-	unsigned char* frame = (unsigned char*)malloc( dev->getFrameSize() );
+  FrameStreamer* src = new V4L2Device("/dev/video0");
+  FrameStreamer* dev = new NullFrameDecorator( src );
+
+  unsigned char* frame = (unsigned char*)malloc( dev->getFrameSize() );
 
 	dev->start();
 	dev->getFrame(frame);
