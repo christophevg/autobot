@@ -8,6 +8,9 @@
  */
 class FrameStreamer { 
 public:
+  virtual int  getWidth() = 0;
+  virtual int  getHeight() = 0;
+  virtual int  getColors() = 0;
   virtual int  getFrameSize() = 0;
   virtual void start() = 0;
   virtual void getFrame( unsigned char* frame ) = 0; 
@@ -20,14 +23,15 @@ public:
  * the actual decorators will have to implement: processFrame
  */
 class FrameDecorator : public FrameStreamer {
-private:
-  FrameStreamer* fs;
-
 protected:
+  FrameStreamer* fs;
   virtual void postProcessFrame( unsigned char* frame ) = 0;
   
 public:    
   FrameDecorator(FrameStreamer* fs);
+  int  getWidth();
+  int  getHeight();
+  int  getColors();
   int  getFrameSize();
   void start();
   void getFrame( unsigned char* frame ); 

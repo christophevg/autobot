@@ -2,52 +2,37 @@ DEV=/dev/video0
 CC=g++
 CFLAGS=-W -Wall
 LDFLAGS=
+LIBOBJS=V4L2Device.o FrameStreamer.o YUV2RGB.o
 
 all: clean out.png
 
-mock: out.rgb
-	mkdir -p mock
-	cp 0-out.rgb mock/0.rgb
-	cp 1-out.rgb mock/1.rgb
-	cp 2-out.rgb mock/2.rgb
-	cp 3-out.rgb mock/3.rgb
-	cp 4-out.rgb mock/4.rgb
-
-%.mock: grab-frame.exe
-	LD_LIBRARY_PATH=. mono $< out.rgb ./mock
-	convert -size 320x240 -depth 8 rgb:0-out.rgb 0-out.png
-	convert -size 320x240 -depth 8 rgb:1-out.rgb 1-out.png
-	convert -size 320x240 -depth 8 rgb:2-out.rgb 2-out.png
-	convert -size 320x240 -depth 8 rgb:3-out.rgb 3-out.png
-	convert -size 320x240 -depth 8 rgb:4-out.rgb 4-out.png
+mock: 0.rgb 1.rgb 2.rgb 3.rgb 4.rgb
+	mkdir -p $@
+	mv [0-4].rgb $@
 
 %.png: %.rgb
-	convert -size 320x240 -depth 8 rgb:0-$< 0-$@
-	convert -size 320x240 -depth 8 rgb:1-$< 1-$@
-	convert -size 320x240 -depth 8 rgb:2-$< 2-$@
-	convert -size 320x240 -depth 8 rgb:3-$< 3-$@
-	convert -size 320x240 -depth 8 rgb:4-$< 4-$@
+	convert -size 320x240 -depth 8 rgb:$< $@
 
 %.rgb: grab-frame.exe 
 	LD_LIBRARY_PATH=. mono $< $@ ${DEV}
+
+%.o: %.cc
+	${CC} ${CFLAGS} -c $< -o $@
+
+grab-frame: grab-frame.o ${LIBOBJS}
+	${CC} -o $@ grab-frame.o ${LIBOBJS}
+
+capture.so: ${LIBOBJS} capture.a
+	${CC} -shared -Wl,-soname,lib$@.1 -o lib$@.1.0.0 ${LIBOBJS}
+
+capture.a: ${LIBOBJS}
+	ar rcs lib$@ ${LIBOBJS}
 
 grab-frame.exe: grab-frame.cs Project.Autobot.Capture.dll capture.so
 	mcs -r:Project.Autobot.Capture.dll -out:$@ $<
 
 Project.Autobot.Capture.dll: Project.Autobot.Capture.cs V4L2Device.cs
 	mcs -target:library -out:$@ Project.Autobot.Capture.cs V4L2Device.cs
-
-%.o: %.cc
-	${CC} ${CFLAGS} -c $< -o $@
-
-grab-frame: grab-frame.o V4L2Device.o FrameStreamer.o yuv2rgb.o
-	${CC} -o $@ grab-frame.o V4L2Device.o FrameStreamer.o yuv2rgb.o
-
-capture.so: V4L2Device.o FrameStreamer.o yuv2rgb.o capture.a
-	${CC} -shared -Wl,-soname,lib$@.1 -o lib$@.1.0.0 V4L2Device.o FrameStreamer.o  yuv2rgb.o
-
-capture.a: V4L2Device.o FrameStreamer.o yuv2rgb.o
-	ar rcs lib$@ V4L2Device.o FrameStreamer.o yuv2rgb.o
 
 formats: v4l2-formats
 	./v4l2-formats ${DEV}

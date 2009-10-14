@@ -155,11 +155,9 @@ void V4L2Device::readFrame(unsigned char* image) {
     return;
   }
 
-  this->convertToRGB( (unsigned char*)buffers[buf.index].start, image );
-}
-
-void V4L2Device::convertToRGB( unsigned char* yuv, unsigned char* rgb ) {
-  ::convert_yuv_to_rgb_buffer(yuv, rgb, FRAME_WIDTH, FRAME_HEIGHT);
+  memcpy(image, 
+         (unsigned char*)buffers[buf.index].start, 
+         this->getFrameSize());
 }
 
 V4L2Device::V4L2Device(string dev) {
@@ -335,38 +333,41 @@ int V4L2Device::getHeight() { return FRAME_HEIGHT; }
 int V4L2Device::getColors() { return FRAME_COLORS; }
 
 int V4L2Device::getFrameSize() { 
-  return this->getWidth() * this->getHeight() * this->getColors();
+  // The default format is YUV, which takes 2 bytes per pixel
+  return this->getWidth() * this->getHeight() * 2;
 }
 
 // C interface
-extern "C" V4L2Device* V4L2Device_new(const char* name) {
-  return new V4L2Device(name);
+extern "C" FrameStreamer* V4L2Device_new(const char* name) {
+  // by default we wrap with a translator to RGB
+  return new YUV2RGB( new V4L2Device(name) );
 }
 
-extern "C" void V4L2Device_start(V4L2Device* dev) {
+extern "C" void V4L2Device_start(FrameStreamer* dev) {
   return dev->start();
 }
 
-extern "C" void V4L2Device_getFrame(V4L2Device* dev, unsigned char* frame) {
+extern "C" void V4L2Device_getFrame(FrameStreamer* dev, 
+                                    unsigned char* frame) {
   return dev->getFrame( frame );
 }
 
-extern "C" void V4L2Device_stop(V4L2Device* dev) {
+extern "C" void V4L2Device_stop(FrameStreamer* dev) {
   return dev->stop();
 }
 
-extern "C" int V4L2Device_getHeight(V4L2Device* dev) {
+extern "C" int V4L2Device_getHeight(FrameStreamer* dev) {
   return dev->getHeight();
 }
 
-extern "C" int V4L2Device_getWidth(V4L2Device* dev) {
+extern "C" int V4L2Device_getWidth(FrameStreamer* dev) {
   return dev->getWidth();
 }
 
-extern "C" int V4L2Device_getColors(V4L2Device* dev) {
+extern "C" int V4L2Device_getColors(FrameStreamer* dev) {
   return dev->getColors();
 }
 
-extern "C" int V4L2Device_getFrameSize(V4L2Device* dev) {
+extern "C" int V4L2Device_getFrameSize(FrameStreamer* dev) {
   return dev->getFrameSize();
 }
